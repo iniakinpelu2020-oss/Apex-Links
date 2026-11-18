@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Apex Links</title>
+<meta name="description" content="Offline-first bookmarks and self-hosted short links for ApexOS. Saved on this device only.">
+<meta name="theme-color" content="#080a12">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <img src="./icons/icon-192.png" alt="" width="28" height="28">
+    <span>Apex Links</span>
+  </div>
+  <div class="tools">
+    <input id="search" type="search" placeholder="Search links, tags, aliases" autocomplete="off" aria-label="Search links">
+    <button id="addBtn" class="primary" type="button">Add link</button>
+  </div>
+</header>
+
+<main class="shell">
+  <aside class="pane side" aria-label="Collections">
+    <p class="count" id="count">0 links</p>
+
+    <nav class="filters" aria-label="Filters">
+      <button class="filter" type="button" data-mode="all" aria-current="true">
+        <span>All links</span><b id="allCount">0</b>
+      </button>
+      <button class="filter" type="button" data-mode="pinned" aria-current="false">
+        <span>Pinned</span><b id="pinCount">0</b>
+      </button>
+    </nav>
+
+    <p class="side-head">Tags</p>
+    <nav class="filters" id="tagList" aria-label="Tags"></nav>
+    <p class="hint" id="noTags">No tags yet. Add them with commas.</p>
+
+    <div class="io">
+      <button id="exportBtn" type="button">Export JSON</button>
+      <button id="importBtn" type="button">Import</button>
+      <input id="importFile" type="file" accept="application/json,.json,text/html,.html,.htm" hidden>
+    </div>
+    <p class="io-note">Import reads this app&rsquo;s JSON or a browser bookmarks HTML export.</p>
+  </aside>
+
+  <section class="pane main">
+    <div class="view-head">
+      <div>
+        <h1 id="viewTitle">All links</h1>
+        <p id="viewSub">Everything you saved, on this device.</p>
+      </div>
+      <p class="short-note" id="shortNote" hidden></p>
+    </div>
+
+    <ul id="linkList" class="grid"></ul>
+
+    <div class="blank" id="emptyState" hidden>
+      <h2>No links here yet</h2>
+      <p>Save a page once and it stays available offline &mdash; the address, the title and your note all live in this browser.</p>
+      <div class="blank-actions">
+        <button class="primary" type="button" data-add>Add a link</button>
+        <button type="button" data-import>Import bookmarks</button>
+      </div>
+    </div>
+
+    <p class="hint pad" id="emptyFilter" hidden>Nothing matches that search or tag.</p>
+  </section>
+</main>
+
+<dialog id="editor" class="dlg">
+  <form id="editorForm" novalidate>
+    <h2 id="editorTitle">Add link</h2>
+    <label class="field">
+      <span>Address</span>
+      <input id="fUrl" type="text" inputmode="url" placeholder="example.com/page" autocomplete="off" spellcheck="false" required>
+    </label>
+    <label class="field">
+      <span>Title <em>optional</em></span>
+      <input id="fTitle" type="text" placeholder="Falls back to the site name" autocomplete="off">
+    </label>
+    <div class="row">
+      <label class="field">
+        <span>Short alias <em>optional</em></span>
+        <input id="fAlias" type="text" placeholder="auto" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>Tags <em>comma separated</em></span>
+        <input id="fTags" type="text" placeholder="work, reading" autocomplete="off">
+      </label>
+    </div>
+    <label class="field">
+      <span>Note <em>optional</em></span>
+      <textarea id="fNote" rows="2" placeholder="Why did you save this?"></textarea>
+    </label>
+    <label class="check">
+      <input id="fPin" type="checkbox">
+      <span>Pin to the top</span>
+    </label>
+    <p class="err" id="editorErr" role="alert" hidden></p>
+    <div class="dlg-actions">
+      <button type="button" data-close>Cancel</button>
+      <button class="primary" type="submit" id="saveBtn">Save link</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="redirectDialog" class="dlg">
+  <h2 id="redirectTitle">Opening link&hellip;</h2>
+  <p class="muted" id="redirectNote">This alias is saved on this device.</p>
+  <code class="urlbox" id="redirectUrl"></code>
+  <div class="dlg-actions">
+    <button type="button" id="redirectClose">Close</button>
+    <a id="redirectOpen" class="btn primary" href="#" target="_blank" rel="noopener">Open link</a>
+  </div>
+</dialog>
+
+<dialog id="copyDialog" class="dlg">
+  <h2>Short link</h2>
+  <p class="muted">The browser blocked the clipboard, so select and copy this yourself.</p>
+  <input id="copyValue" class="urlbox input" type="text" readonly>
+  <div class="dlg-actions">
+    <button type="button" data-close>Done</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="./app.js"></script>
+</body>
+</html>
