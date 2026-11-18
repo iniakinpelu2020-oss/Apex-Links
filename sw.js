@@ -9,8 +9,7 @@ var SHELL = [
   './manifest.json',
   './offline.html',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-512.png'
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', function (event) {
@@ -38,15 +37,18 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   var request = event.request;
   if (request.method !== 'GET') return;
-
   var url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(function () {
-        return caches.match('./index.html').then(function (hit) {
-          return hit || caches.match('./offline.html');
+      fetch(request).then(function (response) {
+        return response;
+      }).catch(function () {
+        return caches.match(request).then(function (hit) {
+          return hit || caches.match('./index.html').then(function (shell) {
+            return shell || caches.match('./offline.html');
+          });
         });
       })
     );
@@ -57,12 +59,12 @@ self.addEventListener('fetch', function (event) {
     caches.match(request).then(function (hit) {
       if (hit) return hit;
       return fetch(request).then(function (response) {
-        if (!response || response.status !== 200 || response.type !== 'basic') return response;
+        if (!response || response.status !== 200 || response.type === 'opaque') return response;
         var copy = response.clone();
-        caches.open(CACHE).then(function (cache) { cache.put(request, copy); });
+        caches.open(CACHE).then(function (cache) {
+          cache.put(request, copy);
+        });
         return response;
-      }).catch(function () {
-        return caches.match('./offline.html');
       });
     })
   );
