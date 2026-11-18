@@ -1,39 +1,76 @@
 # Apex Links
 
-A URL shortener and a link-in-bio page, with click counts you own.
+Offline-first bookmarks with short links you host yourself. Vanilla HTML/CSS/JS, no build step,
+no tracking, no third-party requests, relative `./` paths so it also runs from `/apps/links/`
+inside the ApexOS bundle.
 
-**Status: not built. It is blocked on one thing that is not free.**
+## Status
 
-## The blocker, stated plainly
+This ships the half of the idea that needs no server: bookmarks, tags, search, and short links
+resolved by the app itself. The earlier plan here was a Worker + D1 redirect service with
+click counts and a public bio page; that needs a domain pointed at Cloudflare and a deploy, so
+it is **not** included, and aliases only resolve in the browser that saved them.
 
-A shortener needs short links, which means a domain. `something.workers.dev` works but is
-long and ugly, and free subdomain services come and go — when one dies, every link you ever
-shared dies with it. This is the only product in the suite where a small annual cost is
-genuinely hard to avoid.
+## Run
 
-If you already own a domain, this becomes easy and free to run.
+```sh
+python3 -m http.server 8080
+# then open http://127.0.0.1:8080/
+```
 
-## What it should do
+Service workers need `http://localhost` or HTTPS.
 
-- Create a short code for a URL.
-- Redirect on request, counting the click.
-- A public bio page listing your links.
+## What it does
 
-## The constraint that shapes it
+| control | what it does |
+|---|---|
+| Add link | Saves an address with an optional title, tags, note and pin |
+| Search | Matches title, address, alias, note and tags |
+| Tags / Pinned | Filters the grid; click a tag chip on a card to jump to it |
+| `#/s/<alias>` pill | Copies the self-hosted short link for that bookmark |
+| Export JSON | Downloads every bookmark as `apex-links-YYYY-MM-DD.json` |
+| Import | Reads that JSON back, or a browser bookmarks HTML export |
+| `/` and `n` | Focus search / open the add form |
 
-Counting clicks is a write on every visit. Firestore would burn its 20,000 daily writes;
-Cloudflare Workers KV or D1 is a better fit, but D1 free is 5 GB total across the whole
-account, which is fine for counters.
+Addresses must be `http:` or `https:`; anything else is refused rather than saved.
 
-Redirects must be fast and must never be blocked by a login.
+## Short links
 
-## What you need to do
+There is no server: the app is the resolver. `#/s/<alias>` (or `?s=<alias>`) looks the alias
+up in local storage, counts the open and sends you to the address. In ApexOS the app runs in an
+iframe, so the target opens in a new tab; most sites refuse to be framed.
 
-1. A domain, and its nameservers pointed at Cloudflare.
-2. Nothing else.
+Aliases are unique, lowercase and generated from the title when you leave the field empty
+(`apex-notes`, `apex-notes-2`, ...). Host the folder at the root of a domain if you want the
+short links to be short; under `/apps/links/` they carry that prefix but still work.
 
-## First three steps
+Because the alias table lives in `localStorage`, a short link only resolves in the browser that
+saved it. Export the JSON if you want to move the table to another device.
 
-1. A Worker route that maps a code to a URL and returns a 302.
-2. Click counting in D1, with a daily rollup rather than a row per click.
-3. A small page for creating links, behind your normal sign-in.
+## What the hosted version would add
+
+A Worker route that maps `/s/<alias>` to a `302`, click counts rolled up per day in D1, and a
+public bio page listing links in a chosen order. That is the part that needs the domain, and it
+is not in this repo. The alias is stored in the export, so a redirect route can later be pointed
+at the same table without changing how bookmarks are edited.
+
+## Storage
+
+Bookmarks live in `localStorage` under `apex.links.v1`:
+
+```json
+[{ "id": "...", "url": "https://...", "title": "...", "note": "",
+   "tags": ["work"], "alias": "example", "pinned": false, "hits": 0,
+   "created": 1730000000000, "updated": 1730000000000 }]
+```
+
+Nothing is uploaded, and clearing site data deletes the bookmarks.
+
+## Bundling into ApexOS
+
+`Apexos` clones this repo into `apps/links/` (roster entry `Apex-Links links` in
+`.github/workflows/bundle-apex.yml`). Keep every path relative (`./styles.css`, not
+`/styles.css`) or the app breaks under `/apps/links/`.
+
+When the shell files change, bump `CACHE` in `sw.js` (`apex-links-v1` → `v2`) so installed
+clients pick up the new assets instead of serving the old cache.
